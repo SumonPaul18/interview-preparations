@@ -1,4 +1,4 @@
-নিচে আমি **Senior Operation Engineer (Telecom Domain)** ইন্টারভিউয়ের জন্য ধাপে ধাপে গুরুত্বপূর্ণ বিষয়ের উপর ভিত্তি করে **১৫টি প্রশ্নের বাংলা ও ইংরেজি উত্তর** তৈরি করে দিচ্ছি।
+নিচে আমি **DevOps Engineer** ইন্টারভিউয়ের জন্য ধাপে ধাপে গুরুত্বপূর্ণ বিষয়ের উপর **বাংলা ও ইংরেজিতে প্রশ্নসহ-উত্তর** দেওয়া হল।
 
 ---
 
@@ -171,10 +171,6 @@ I first study documentation, then create a lab environment to practice, and seek
 - **সুবিধা সম্পর্কে জিজ্ঞাসা:* "Could you please elaborate on the benefits package associated with this positio?"
 
 - **বেতন কাঠামো সম্পর্কে স্পষ্টতা চাওয়া:* "Is the compensation structure fixed or negotiable based on skills and certification?"
-
----
-
-নিচে আমি **বেতন আলোচনা (Salary Negotiation)** নিয়ে একটি **চেকলিস্ট** এবং একটি **মক ইন্টারভিউ স্ক্রিপ্ট** দিচ্ছি — যা আপনি সাক্ষাৎকারে ব্যবহার করতে পারবেন।
 
 ---
 
