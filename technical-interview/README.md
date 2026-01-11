@@ -211,6 +211,275 @@
 
 ---
 
+## 🔹 **প্রশ্ন ১: "আপনি AWS-এর কী কী জানেন এবং কী কী কাজ করেছেন?"**
+
+### 🇧🇩 **বাংলায় (Realistic & Honest):**
+> "আমি AWS-এর core services গুলো ব্যবহার করেছি—যেমন:  
+> - **EC2, VPC, Security Groups** → Infrastructure setup  
+> - **S3, CloudFront** → Static hosting (React app)  
+> - **RDS (PostgreSQL), ElastiCache (Redis)** → Managed DB & cache  
+> - **ECS/Fargate** → Container orchestration (no Kubernetes yet)  
+> - **IAM, Secrets Manager** → Secure access & secrets  
+> - **CloudWatch, X-Ray** → Monitoring & tracing  
+> - **Route 53, ALB** → DNS & load balancing  
+>  
+> আমি **Terraform দিয়ে IaC** লিখেছি, **CI/CD pipeline** (GitHub Actions → ECR → ECS) সেটআপ করেছি, এবং **cost optimization** (right-sizing, reserved instances) করেছি।  
+>  
+> আমার home lab-এ আমি OpenShift CRC + AWS CLI ব্যবহার করে hybrid test করি।"
+
+### 🇬🇧 **In Simple English:**
+> "I’ve hands-on experience with:  
+> - **Compute**: EC2, ECS/Fargate  
+> - **Networking**: VPC, ALB, Route 53  
+> - **Storage**: S3, EBS  
+> - **Database**: RDS (PostgreSQL), ElastiCache (Redis)  
+> - **Security**: IAM roles, Secrets Manager, Security Groups  
+> - **Observability**: CloudWatch Logs/Metrics, X-Ray  
+> - **Automation**: Terraform (IaC), GitHub Actions (CI/CD)  
+>  
+> I’ve deployed full-stack apps (React + Node.js + DB) on AWS, secured them, and set up monitoring. I also optimize costs by right-sizing instances and using reserved capacity where possible."
+
+### 🛠️ **প্র্যাকটিক্যাল গাইডলাইন (যদি জিজ্ঞাসা করে: “Show me how you deployed an app”):**
+```bash
+# 1. Create VPC (Terraform)
+terraform {
+  required_providers {
+    aws = { source = "hashicorp/aws" }
+  }
+}
+provider "aws" { region = "us-east-1" }
+
+resource "aws_vpc" "main" {
+  cidr_block = "10.0.0.0/16"
+}
+
+# 2. Push Docker image to ECR
+aws ecr create-repository --repository-name my-node-app
+docker build -t my-node-app .
+docker tag my-node-app:latest 123456789.dkr.ecr.us-east-1.amazonaws.com/my-node-app:latest
+docker push ...
+
+# 3. Deploy to ECS Fargate (via task definition + service)
+# Use AWS Console or Terraform aws_ecs_service
+```
+
+> 💡 **Follow-up ready**: If asked “How did you handle DB migration?”, say:  
+> “I used **AWS DMS (Database Migration Service)** for zero-downtime cutover, or `pg_dump` + `pg_restore` during maintenance window.”
+
+---
+
+## 🔹 **প্রশ্ন ২: "DDoS Attack হলে কীভাবে monitor ও prevent করবেন?"**
+
+### 🇧🇩 **বাংলায়:**
+> "DDoS মূলত ২ ধরনের:  
+> 1. **Network-layer (L3/L4)** → যেমন SYN flood  
+> 2. **Application-layer (L7)** → যেমন HTTP flood  
+>  
+> **Prevention**:  
+> - **AWS Shield Standard** → সব AWS customer-এর জন্য free, L3/L4 attack block করে  
+> - **AWS Shield Advanced** → $15/month, L7 protection + DDoS response team  
+> - **Web Application Firewall (WAF)** → Rate-based rules (e.g., block IP if >100 req/min)  
+> - **ALB + Auto Scaling** → Traffic absorb করতে পারে  
+>  
+> **Monitoring**:  
+> - CloudWatch metrics: `RequestCount`, `HTTPCode_ELB_5XX`  
+> - AWS WAF logs → S3 + Athena for analysis  
+> - Enable **VPC Flow Logs** to detect unusual traffic patterns"
+
+### 🇬🇧 **In Simple English:**
+> "For DDoS:  
+> - **Prevent**: Use **AWS Shield Standard** (free, blocks network floods) + **WAF** (for HTTP floods). Set rate-limiting rules like “block IP if >100 requests/5 mins”.  
+> - **Absorb**: Put app behind **Application Load Balancer (ALB)** + enable **Auto Scaling** so it can handle traffic spikes.  
+> - **Monitor**: Watch CloudWatch metrics like `HTTPCode_ELB_5XX` and `HealthyHostCount`. Enable **WAF logs** to S3 and analyze with Athena.  
+>  
+> For critical apps, I recommend **Shield Advanced**—it includes 24/7 DDoS response team."
+
+### 🛠️ **প্র্যাকটিক্যাল গাইডলাইন (WAF Rate Limit Setup):**
+1. Go to **AWS WAF → Web ACLs → Create Web ACL**
+2. Add rule: **Rate-based rule**
+   - Count: 100 requests
+   - Interval: 5 minutes
+   - Action: Block
+3. Associate with **ALB or CloudFront**
+4. Enable **logging** to S3
+
+> 💡 **Follow-up ready**: If asked “What if attack bypasses WAF?”, say:  
+> “I’d use **CloudFront in front of ALB** (adds another layer), and enable **AWS Shield Advanced** for automatic mitigation.”
+
+---
+
+## 🔹 **প্রশ্ন ৩: "Private DB-কে Public Network থেকে কীভাবে Access করবেন?"**
+
+### 🇧🇩 **বাংলায়:**
+> "Production DB **কখনোই public subnet-এ রাখব না**।  
+> Developer-দের access দেওয়ার জন্য আমি ৩টি secure approach ব্যবহার করি:  
+> 1. **Bastion Host (Jump Server)** → EC2 in public subnet, SSH tunnel দিয়ে private DB-তে connect  
+> 2. **AWS Session Manager** → No open SSH port! IAM role দিয়ে browser/CLI থেকে direct access  
+> 3. **AWS Client VPN** → Developer-দের laptop থেকে VPC-এর ভিতরে connect  
+>  
+> আমি **Session Manager** সবচেয়ে বেশি পছন্দ করি—কারণ এটা **port 22 open করে না**, audit log রাখে, এবং MFA support করে।"
+
+### 🇬🇧 **In Simple English:**
+> "Never put DB in public subnet. To give devs access:  
+> 1. **Bastion Host**: EC2 in public subnet → SSH tunnel to RDS  
+> 2. **Session Manager (Preferred)**: Use AWS Systems Manager → no open ports, IAM-controlled, full audit trail  
+> 3. **Client VPN**: For frequent access, set up OpenVPN via AWS Client VPN  
+>  
+> I prefer **Session Manager** because it’s more secure (no SSH exposure) and integrates with IAM."
+
+### 🛠️ **প্র্যাকটিক্যাল গাইডলাইন (Session Manager Setup):**
+1. Install **SSM Agent** on a **private EC2 instance** (or use RDS Proxy if only DB access needed)
+2. Attach IAM policy `AmazonSSMManagedInstanceCore` to the instance role
+3. From local machine:
+   ```bash
+   aws ssm start-session --target i-1234567890abcdef0
+   ```
+4. Then from that session, connect to RDS:
+   ```bash
+   psql -h mydb.xxxxx.us-east-1.rds.amazonaws.com -U admin
+   ```
+
+> 💡 **Follow-up ready**: If asked “Can I connect directly to RDS without EC2?”, say:  
+> “Not securely. But you can use **RDS Proxy** + **IAM auth** + **Session Manager port forwarding** for direct-like access.”
+
+---
+
+## 🔹 **প্রশ্ন ৪: "Multiple developers কীভাবে একই Terraform state-এ কাজ করবে?"**
+
+### 🇧🇩 **বাংলায়:**
+> "Terraform-এ **local state file (.tfstate)** শেয়ার করা কখনোই ঠিক না।  
+> আমি **remote backend** ব্যবহার করি—যেমন: **S3 + DynamoDB**  
+> - **S3**: `.tfstate` file store করে  
+> - **DynamoDB**: State locking (prevent race condition)  
+>  
+> Workflow:  
+> 1. All devs use same `backend.tf`  
+> 2. Before `terraform apply`, Terraform auto-locks state via DynamoDB  
+> 3. After apply, state updates in S3  
+>  
+> আর CI/CD-এ আমি **separate state per environment** (dev/staging/prod) রাখি, যাতে একটা mistake production-এ effect না ফেলে।"
+
+### 🇬🇧 **In Simple English:**
+> "We **never commit .tfstate to Git**. Instead, we use **remote state**:  
+> - **Backend**: S3 bucket (encrypted)  
+> - **State Locking**: DynamoDB table (to prevent concurrent runs)  
+>  
+> Every developer runs:
+> ```hcl
+> terraform {
+>   backend "s3" {
+>     bucket = "mycompany-terraform-state"
+>     key    = "prod/vpc/terraform.tfstate"
+>     region = "us-east-1"
+>     dynamodb_table = "terraform-locks"
+>   }
+> }
+> ```
+> Before `apply`, Terraform locks the state. Only one person can apply at a time."
+
+### 🛠️ **প্র্যাকটিক্যাল গাইডলাইন (Setup S3 + DynamoDB Backend):**
+```bash
+# 1. Create S3 bucket (enable versioning & encryption)
+aws s3api create-bucket --bucket my-terraform-state-12345 --region us-east-1
+aws s3api put-bucket-versioning --bucket my-terraform-state-12345 --versioning-configuration Status=Enabled
+
+# 2. Create DynamoDB table
+aws dynamodb create-table \
+  --table-name terraform-locks \
+  --attribute-definitions AttributeName=LockID,AttributeType=S \
+  --key-schema AttributeName=LockID,KeyType=HASH \
+  --billing-mode PAY_PER_REQUEST
+
+# 3. In Terraform code, add backend config (as above)
+```
+
+> 💡 **Follow-up ready**: If asked “What if someone deletes state?”, say:  
+> “S3 versioning lets us restore. Also, I run `terraform state pull > backup.tfstate` weekly.”
+
+---
+
+## 🔹 **প্রশ্ন ৫: "AWS Load Balancer নিয়ে কাজ করেছেন? কী কী করেছেন?"**
+
+### 🇧🇩 **বাংলায়:**
+> "হ্যাঁ, আমি **Application Load Balancer (ALB)** ব্যবহার করেছি:  
+> - **Path-based routing**: `/api` → Node.js, `/` → React (S3)  
+> - **Health checks**: `/health` endpoint check করে unhealthy instance remove করে  
+> - **SSL/TLS**: ACM certificate attach করে HTTPS enable করেছি  
+> - **Logging**: Access logs S3-এ send করেছি (security audit)  
+> - **WAF integration**: DDoS/rate limiting  
+>  
+> আমি **Network Load Balancer (NLB)** ও ব্যবহার করেছি—যখন low-latency TCP traffic (e.g., gaming server) ছিল।"
+
+### 🇬🇧 **In Simple English:**
+> "Yes, I’ve used **ALB extensively**:  
+> - Route `/api/*` to ECS (Node.js), `/static/*` to S3  
+> - Set health check path to `/health`  
+> - Attached **ACM SSL certificate** for HTTPS  
+> - Enabled **access logs to S3** for security analysis  
+> - Integrated with **WAF** for rate limiting  
+>  
+> I also used **NLB** for high-performance TCP apps (like real-time services)."
+
+### 🛠️ **প্র্যাকটিক্যাল গাইডলাইন (ALB with Path Routing in Terraform):**
+```hcl
+resource "aws_lb" "main" {
+  name               = "my-alb"
+  internal           = false
+  load_balancer_type = "application"
+  security_groups    = [aws_security_group.alb.id]
+  subnets            = module.vpc.public_subnets
+}
+
+resource "aws_lb_listener" "https" {
+  load_balancer_arn = aws_lb.main.arn
+  port              = "443"
+  protocol          = "HTTPS"
+  certificate_arn   = aws_acm_certificate.cert.arn
+
+  default_action {
+    type             = "fixed-response"
+    fixed_response {
+      content_type = "text/plain"
+      message_body = "404"
+      status_code  = "404"
+    }
+  }
+}
+
+# Rule for /api
+resource "aws_lb_listener_rule" "api" {
+  listener_arn = aws_lb_listener.https.arn
+  priority     = 100
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.api.arn
+  }
+
+  condition {
+    path_pattern {
+      values = ["/api/*"]
+    }
+  }
+}
+```
+
+> 💡 **Follow-up ready**: If asked “How do you handle WebSocket?”, say:  
+> “ALB supports WebSocket by default—just ensure idle timeout ≥ WebSocket keep-alive (e.g., 600 sec).”
+
+---
+
+## ✅ Final Tip for Interview:
+> Always connect your answer to **business impact**:  
+> - “I reduced cost by 30% using reserved instances”  
+> - “I prevented downtime during Black Friday traffic spike”  
+> - “I cut deployment time from 30 min to 3 min”
+
+---
+
+
+
+---
 ### 🇧🇩 **বাংলায় (সহজ ও বাস্তব প্রেক্ষাপটে):**
 
 > "আমি যদি একজন DevOps Engineer হিসেবে একটি startup-এর traditional application-কে AWS-এ migrate করতে আসি, তাহলে আমি প্রথমে বর্তমান system-টির **full assessment** করব।  
